@@ -1,6 +1,6 @@
 ---
 name: dsh-vision-skill
-description: Use when the user shares, pastes, or references an image (local path or URL) and you need to describe, analyze, OCR, or recognize its content. The current model may not read images directly; run the bundled vision.js helper to convert the image into text via a configurable OpenAI-compatible vision API.
+description: Use when the user shares, pastes, or references an image (local path or URL) and you need to describe, analyze, OCR, or recognize its content. The current model may not read images directly; run the bundled vision.js helper to convert the image into text via a configurable vision model API (Gemini native API or OpenAI-compatible services).
 whenToUse: 用户提供图片（路径/链接/剪贴板粘贴）并要求描述、识别、分析图片内容，而当前模型无法直接看图时。
 ---
 
@@ -40,7 +40,7 @@ node "<基础目录>/vision.js" "<图片绝对路径>" "<问题>"
 - 本地图片用绝对路径，网络图片用 `--url`
 - 用户粘贴图片且无可见路径时，优先 `--clipboard`
 - 默认用中文描述，除非用户另有要求
-- 配置在 `vision.js` 同目录的 `.env` 中（`VISION_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL`，兼容旧变量名 `DASHSCOPE_API_KEY` / `DASHSCOPE_BASE_URL`）。支持任意 OpenAI 兼容格式的视觉模型 API；key 以 `AIza` 开头（或设置 `GEMINI_API_KEY`）时自动使用 Gemini 官方兼容端点（默认模型 `gemini-3.1-flash-lite`），否则默认阿里云 DashScope（`qwen-vl-max`）
+- 配置在 `vision.js` 同目录的 `.env` 中（`VISION_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL`，兼容旧变量名 `DASHSCOPE_API_KEY` / `DASHSCOPE_BASE_URL` / `GEMINI_API_KEY`）。key 以 `AIza` 开头（或设置 `GEMINI_API_KEY`）时自动使用 **Gemini 原生 API**（默认模型 `gemini-3.1-flash-lite`）；否则走 OpenAI 兼容格式，默认阿里云 DashScope（`qwen-vl-max`）
 - **绝不打印或提交 API Key**
 - 若 API 调用失败：向用户报告错误，并提示检查 Key、模型名或 Base URL（参考同目录 `.env.example`）
 

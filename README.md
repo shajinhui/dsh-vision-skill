@@ -50,11 +50,11 @@ cp .env.example .env
 # 编辑 .env，填入 VISION_API_KEY
 ```
 
-**Gemini（推荐）**：key 以 `AIza` 开头即可，自动使用 Gemini 官方 OpenAI 兼容端点，默认模型 `gemini-3.1-flash-lite`（便宜快速，支持视觉）。申请：https://aistudio.google.com/apikey
+**Gemini（推荐）**：key 以 `AIza` 开头即可，自动使用 **Gemini 原生 API**（`POST /v1beta/interactions`，图片 base64 inline），默认模型 `gemini-3.1-flash-lite`（便宜快速，支持视觉）。申请：https://aistudio.google.com/apikey
 
-**阿里云千问**：填阿里云百炼 key 即可，自动使用 `qwen-vl-max`（新用户有免费额度）。申请：https://bailian.console.aliyun.com/
+**阿里云千问**：填阿里云百炼 key 即可，走 OpenAI 兼容格式，自动使用 `qwen-vl-max`（新用户有免费额度）。申请：https://bailian.console.aliyun.com/
 
-**其他 OpenAI 兼容视觉 API**：改 `.env` 里两个字段：
+**其他 OpenAI 兼容视觉 API**：改 `.env` 里两个字段（仅对非 Gemini 服务生效）：
 
 ```ini
 VISION_BASE_URL=https://你的服务地址/v1
