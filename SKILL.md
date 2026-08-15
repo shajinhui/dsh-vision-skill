@@ -28,9 +28,9 @@ Use the clipboard mode when the user pasted an image but the host provides no vi
 
 If a supplied local path does not exist, the helper falls back to the clipboard. Add `--no-fallback` when failure should be explicit.
 
-## Handle large images
+## Preserve the original image
 
-Allow the default optimization first: it limits the longest side to 2048px when the platform has a supported system image tool. For faster OCR or screenshots, use `--max-side 1600 --quality 76`. Use `--no-optimize` only when tiny visual details require the original image.
+Send the original image bytes without local resizing, recompression, format conversion, or quality reduction. Base64 encoding is lossless. If an image exceeds the inline upload limit, report that limit and suggest an image URL or a provider-supported file upload instead of altering the image.
 
 ## Configure the provider
 
@@ -39,8 +39,6 @@ Read configuration from `<skill-root>/.env` or the process environment:
 - `VISION_API_KEY` — required
 - `VISION_MODEL` — optional model override
 - `VISION_BASE_URL` — optional OpenAI-compatible endpoint; ignored for Gemini
-- `VISION_MAX_SIDE` — optional maximum side in pixels; default `2048`
-- `VISION_JPEG_QUALITY` — optional quality from 1 to 100; default `82`
 
 Also accept the legacy variables `GEMINI_API_KEY`, `DASHSCOPE_API_KEY`, and `DASHSCOPE_BASE_URL`.
 

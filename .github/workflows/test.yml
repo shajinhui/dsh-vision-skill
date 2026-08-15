@@ -32,4 +32,3 @@ jobs:
         shell: pwsh
         run: |
           [scriptblock]::Create((Get-Content clipboard.ps1 -Raw)) | Out-Null
-          [scriptblock]::Create((Get-Content image-resize.ps1 -Raw)) | Out-Null
