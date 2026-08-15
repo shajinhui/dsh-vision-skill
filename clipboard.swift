@@ -8,23 +8,31 @@ guard CommandLine.arguments.count > 1 else {
 let outputPath = CommandLine.arguments[1]
 let pasteboard = NSPasteboard.general
 
-func writePng(from data: Data) -> Bool {
-    guard let rep = NSBitmapImageRep(data: data),
-          let png = rep.representation(using: .png, properties: [:]) else {
-        return false
-    }
+func writeData(_ data: Data) -> Bool {
     do {
-        try png.write(to: URL(fileURLWithPath: outputPath))
+        try data.write(to: URL(fileURLWithPath: outputPath), options: .atomic)
         return true
     } catch {
         return false
     }
 }
 
-if let pngData = pasteboard.data(forType: .png), writePng(from: pngData) {
+func convertToPng(_ image: NSImage) -> Data? {
+    guard let tiff = image.tiffRepresentation,
+          let rep = NSBitmapImageRep(data: tiff),
+          let png = rep.representation(using: .png, properties: [:]) else {
+        return nil
+    }
+    return png
+}
+
+if let pngData = pasteboard.data(forType: .png), writeData(pngData) {
     exit(0)
 }
-if let tiffData = pasteboard.data(forType: .tiff), writePng(from: tiffData) {
+
+if let image = NSImage(pasteboard: pasteboard),
+   let pngData = convertToPng(image),
+   writeData(pngData) {
     exit(0)
 }
 

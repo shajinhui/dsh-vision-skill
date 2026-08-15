@@ -1,0 +1,4 @@
+interface:
+  display_name: "DSH Vision"
+  short_description: "Give text-only agents clipboard and image vision"
+  default_prompt: "Use $dsh-vision-skill to analyze the image I shared and explain the important details."
