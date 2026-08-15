@@ -1,100 +1,121 @@
-# DSH Vision Skill（识图技能包）
+# DSH Vision Skill
 
-让没有识图能力的 AI 模型获得识图能力：把图片交给任意 OpenAI 兼容格式的视觉模型 API，用文字描述回来。
+Give text-only AI agents eyes. Paste a screenshot, provide a local image, or share an image URL; the skill sends it to Gemini or an OpenAI-compatible vision API and returns useful text.
 
-适用于 [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) 的 skill 系统。
+让纯文本 AI Agent 一键看图：支持剪贴板、本地图片和图片 URL，零 npm 依赖，并自动优化大图。
 
-## 给 AI 的配置指引（AI 必读）
+[中文](#中文) · [English](#english)
 
-当用户让你"配置识图 / 装这个 skill / 填 key"时，按以下步骤执行：
+![DSH Vision Skill demo](media/demo.gif)
 
-1. **先检查现状**：查看本目录下是否存在 `.env`，且其中 `VISION_API_KEY` 已填写（不是 `sk-xxx` 占位符）
+## 中文
 
-2. **已配置**：告诉用户"已配置完成，直接发图片即可"，不要重复配置
+### 为什么使用
 
-3. **未配置**：执行
-   
-   ```bash
-   cp .env.example .env
-   ```
-   
-   然后把真实 key 填入 `.env` 的 `VISION_API_KEY`
+- **直接粘贴截图**：不必先保存文件或寻找路径
+- **零 npm 依赖**：只需要 Node.js；macOS 和 Windows 使用系统自带工具读取剪贴板
+- **自动优化大图**：默认将最长边缩至 2048px，减少 base64 体积和等待时间
+- **多种视觉模型**：支持 Gemini 原生 API、阿里云百炼及其他 OpenAI 兼容服务
+- **保护本地配置**：API Key 保存在被 Git 忽略的 `.env`；临时图片使用后自动清理
 
-4. **不知道就问用户，不要猜**。以下情况必须先问清楚，再动手：
-   
-   - 用户没给 key → 问用户要 key，并确认用哪家服务
-   - 用户不知道选哪家 → 推荐 Gemini（key 以 `AIza` 开头，https://aistudio.google.com/apikey 申请）或阿里云百炼（https://bailian.console.aliyun.com/，新用户有免费额度）
-   - 用户要用非默认服务 → 问清 Base URL 和模型名，写入 `.env` 的 `VISION_BASE_URL` / `VISION_MODEL`
-   - 用户给的 key 调用失败（401/模型不存在等）→ 报告错误，问用户 key 是否正确、用哪家服务，或建议换一家
-
-5. **安全**：绝不打印、回显或提交 API Key；`.env` 不得提交 git
-
-6. **验证**：配置完成后，用一张用户提供的图片（或请用户给一张）实测一次识别，确认可用再交付
-
-## 安装
-
-将本目录（`dsh-vision-skill` 文件夹）整体复制到以下任一位置：
-
-| 位置                                    | 生效范围                           |
-| ------------------------------------- | ------------------------------ |
-| `~/.dsh/skills/dsh-vision-skill/`     | 用户级，所有 DSH 项目可用（推荐）            |
-| `<项目根>/.dsh/skills/dsh-vision-skill/` | 仅该项目可用（项目根 = 含 `.git` 的最近祖先目录） |
-
-DSH 会自动发现 skill，**无需重启**；复制后新会话即可在 skill 目录中看到 `dsh-vision-skill`。
-
-## 配置（只需一个 Key）
+### 一行安装
 
 ```bash
-cd dsh-vision-skill
+git clone --depth 1 https://github.com/shajinhui/dsh-vision-skill ~/.dsh/skills/dsh-vision-skill
+```
+
+也可以把仓库复制到项目级目录：`<项目根>/.dsh/skills/dsh-vision-skill/`。DSH 会自动发现 Skill，新会话即可使用。
+
+### 配置
+
+```bash
+cd ~/.dsh/skills/dsh-vision-skill
 cp .env.example .env
 # 编辑 .env，填入 VISION_API_KEY
 ```
 
-**Gemini（推荐）**：key 以 `AIza` 开头即可，自动使用 **Gemini 原生 API**（`POST /v1beta/interactions`，图片 base64 inline），默认模型 `gemini-3.1-flash-lite`（便宜快速，支持视觉）。申请：https://aistudio.google.com/apikey
+| 服务 | 默认模型 | 配置方式 |
+| --- | --- | --- |
+| Gemini（推荐） | `gemini-3.1-flash-lite` | 填写 `AIza...` Key，自动使用 Gemini 原生 API |
+| 阿里云百炼 | `qwen-vl-max` | 填写百炼 Key，自动使用 OpenAI 兼容接口 |
+| 其他兼容服务 | 自定义 | 设置 `VISION_BASE_URL` 和 `VISION_MODEL` |
 
-**阿里云千问**：填阿里云百炼 key 即可，走 OpenAI 兼容格式，自动使用 `qwen-vl-max`（新用户有免费额度）。申请：https://bailian.console.aliyun.com/
+Gemini Key 可在 [Google AI Studio](https://aistudio.google.com/apikey) 申请；阿里云百炼 Key 可在[百炼控制台](https://bailian.console.aliyun.com/)申请。
 
-**其他 OpenAI 兼容视觉 API**：改 `.env` 里两个字段（仅对非 Gemini 服务生效）：
+### 使用
 
-```ini
-VISION_BASE_URL=https://你的服务地址/v1
-VISION_MODEL=你的视觉模型名
-```
-
-也可以不建 `.env`，直接导出环境变量（`VISION_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL`）。兼容旧变量名 `DASHSCOPE_API_KEY` / `DASHSCOPE_BASE_URL`，也支持 `GEMINI_API_KEY`。
-
-## 使用
-
-直接向 AI 发图片即可，三种方式：
-
-- 发送本地图片路径（或直接把图片文件拖进对话）
-- 发送图片 URL
-- 直接粘贴（复制）图片到剪贴板
-
-AI 会调用 `vision.js` 自动识别并描述图片内容（默认中文回答）。
-
-命令行方式（供 AI 内部使用）：
+在 DSH 中直接发送或粘贴图片，然后提问即可。命令行也可以独立使用：
 
 ```bash
-node vision.js "<图片绝对路径>" "这张图里有什么？"
-node vision.js --url "https://example.com/a.jpg" "识别图中文字"
-node vision.js --clipboard "描述这张图片"
+node vision.js "/绝对路径/screenshot.png" "分析这个报错并给出修复建议"
+node vision.js --url "https://example.com/image.jpg" "识别图片中的文字"
+node vision.js --clipboard "这个界面有什么问题？"
 ```
 
-## 依赖
+### 大图优化
 
-零依赖（仅需 Node.js，macOS 剪贴板还需系统自带 Swift）。`vision.js` 内置极简 `.env` 解析，无需 `npm install`。
+默认在上传前把图片最长边限制为 2048px。macOS 使用系统 `sips`，Windows 使用系统 PowerShell/.NET；Linux 检测到 ImageMagick 时启用。优化结果不比原图小时会自动保留原图。
 
-## 安全
+```bash
+# 更快：最长边 1600px，JPEG 质量 76
+node vision.js --max-side 1600 --quality 76 --clipboard "分析截图"
 
-- `.env` 包含 API Key，**不要提交到 git**（建议加入 `.gitignore`）
-- AI 被明确要求绝不打印 Key
+# 需要保留原图时关闭优化
+node vision.js --no-optimize "/path/to/image.png" "读取细小文字"
+```
 
-## 文件说明
+也可以在 `.env` 中设置：
 
-| 文件                                  | 作用                                        |
-| ----------------------------------- | ----------------------------------------- |
-| `SKILL.md`                          | skill 定义（名称、描述、使用指令），DSH 自动加载             |
-| `vision.js`                         | 核心脚本：图片 → base64/URL → OpenAI 兼容 API → 文字 |
-| `clipboard.swift` / `clipboard.ps1` | macOS / Windows 剪贴板图片读取辅助脚本               |
-| `.env.example`                      | 配置模板                                      |
+```ini
+VISION_MAX_SIDE=2048
+VISION_JPEG_QUALITY=82
+```
+
+### 平台支持
+
+| 能力 | macOS | Windows | Linux |
+| --- | --- | --- | --- |
+| 本地图片 / URL | ✅ | ✅ | ✅ |
+| 剪贴板图片 | ✅ | ✅ | 暂不支持 |
+| 零额外依赖优化 | ✅ | ✅ | 需系统安装 ImageMagick |
+
+### 安全与隐私
+
+- 图片只会发送给你在 `.env` 中配置的视觉模型服务；项目不包含遥测
+- `.env` 已加入 `.gitignore`，请勿在 Issue、日志或提交中粘贴 Key
+- 剪贴板和优化产生的临时图片权限受限，并会在成功或失败后清理
+- Gemini 本地下载远程图片时，仅允许 HTTP/HTTPS，并限制为最多 5 次重定向和 25 MB
+
+## English
+
+### Install
+
+```bash
+git clone --depth 1 https://github.com/shajinhui/dsh-vision-skill ~/.dsh/skills/dsh-vision-skill
+cd ~/.dsh/skills/dsh-vision-skill
+cp .env.example .env
+```
+
+Set `VISION_API_KEY` in `.env`. Keys beginning with `AIza` use the native Gemini API; other keys use the configured OpenAI-compatible endpoint, defaulting to DashScope with `qwen-vl-max`.
+
+### Use
+
+```bash
+node vision.js "/absolute/path/screenshot.png" "Find the bug and suggest a fix"
+node vision.js --url "https://example.com/image.jpg" "Extract the text"
+node vision.js --clipboard "Review this interface"
+```
+
+Large images are automatically resized to a maximum side of 2048px. Override this with `--max-side`, `--quality`, `--no-optimize`, `VISION_MAX_SIDE`, or `VISION_JPEG_QUALITY`.
+
+### Development
+
+```bash
+node --check vision.js
+node --test tests/*.test.js
+swiftc -typecheck clipboard.swift  # macOS
+```
+
+## License
+
+[MIT](LICENSE)

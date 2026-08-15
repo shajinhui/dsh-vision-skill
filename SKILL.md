@@ -1,53 +1,55 @@
 ---
 name: dsh-vision-skill
-description: Use when the user shares, pastes, or references an image (local path or URL) and you need to describe, analyze, OCR, or recognize its content. The current model may not read images directly; run the bundled vision.js helper to convert the image into text via a configurable vision model API (Gemini native API or OpenAI-compatible services).
-whenToUse: 用户提供图片（路径/链接/剪贴板粘贴）并要求描述、识别、分析图片内容，而当前模型无法直接看图时。
+description: Give text-only AI agents image understanding through the bundled vision.js helper. Use when a user shares, pastes, or references a local image, screenshot, clipboard image, or image URL and asks to describe, analyze, OCR, debug, inspect, or recognize its content. Use especially when the current model cannot read images directly. Supports Gemini's native API and OpenAI-compatible vision services. Do not use when the host model can already inspect the supplied image directly without a helper.
 ---
 
-# 识图助手（Vision Helper）
+# Analyze images
 
-当前模型可能不支持直接读取图片。当用户提供图片路径、URL 或粘贴图片时，**不要尝试直接看图**，而是运行本 skill 自带的 `vision.js`，把图片转成文字描述。
+Use the bundled `vision.js` to convert an image into text that the current agent can reason about.
 
-## 找到 vision.js
+## Resolve the script
 
-本 skill 的基础目录在 `<skill_resources>` 中给出（"Base directory for this skill"）。`vision.js` 位于该目录下，用其绝对路径执行：
+Resolve the Skill root from the directory containing this `SKILL.md`. DSH may expose it as the base directory in `<skill_resources>`; other compatible hosts may expose the Skill file path directly. Run `vision.js` by absolute path. Never guess or hard-code the installation directory.
+
+## Choose the input mode
 
 ```bash
-node "<基础目录>/vision.js" "<图片绝对路径>" "<问题>"
+# Local file
+node "<skill-root>/vision.js" "/absolute/path/image.png" "<question>"
+
+# Remote image
+node "<skill-root>/vision.js" --url "https://example.com/image.jpg" "<question>"
+
+# Clipboard image
+node "<skill-root>/vision.js" --clipboard "<question>"
 ```
 
-## 三种输入方式
+Use the clipboard mode when the user pasted an image but the host provides no visible path. Clipboard capture supports macOS and Windows. If it fails, ask the user to save the image and provide its absolute path.
 
-| 场景       | 命令                                                               |
-| -------- | ---------------------------------------------------------------- |
-| 本地图片文件   | `node "<基础目录>/vision.js" "/绝对/路径/图片.png" "问题"`                   |
-| 网络图片     | `node "<基础目录>/vision.js" --url "https://example.com/a.jpg" "问题"` |
-| 剪贴板粘贴的图片 | `node "<基础目录>/vision.js" --clipboard "问题"`                       |
+If a supplied local path does not exist, the helper falls back to the clipboard. Add `--no-fallback` when failure should be explicit.
 
-`--clipboard` 会读取系统剪贴板中的图片（macOS 用内置 Swift 脚本，Windows 用内置 PowerShell 脚本）。若失败，请用户把图片保存为文件并提供绝对路径。
+## Handle large images
 
-自动回退规则（无需显式指定）：
+Allow the default optimization first: it limits the longest side to 2048px when the platform has a supported system image tool. For faster OCR or screenshots, use `--max-side 1600 --quality 76`. Use `--no-optimize` only when tiny visual details require the original image.
 
-- 给定本地路径但文件不存在 → 自动回退读取剪贴板
-- 完全没给路径/URL → 自动尝试剪贴板
-- 传 `--no-fallback` 可关闭回退，改为直接报错
+## Configure the provider
 
-不传"问题"时默认提示词为：`请详细描述这张图片的内容。`
+Read configuration from `<skill-root>/.env` or the process environment:
 
-## 规则
+- `VISION_API_KEY` — required
+- `VISION_MODEL` — optional model override
+- `VISION_BASE_URL` — optional OpenAI-compatible endpoint; ignored for Gemini
+- `VISION_MAX_SIDE` — optional maximum side in pixels; default `2048`
+- `VISION_JPEG_QUALITY` — optional quality from 1 to 100; default `82`
 
-- 始终使用绝对路径调用 `vision.js`，路径从 `<skill_resources>` 的基础目录解析，**不要硬编码或猜测路径**
-- 本地图片用绝对路径，网络图片用 `--url`
-- 用户粘贴图片且无可见路径时，优先 `--clipboard`
-- 默认用中文描述，除非用户另有要求
-- 配置在 `vision.js` 同目录的 `.env` 中（`VISION_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL`，兼容旧变量名 `DASHSCOPE_API_KEY` / `DASHSCOPE_BASE_URL` / `GEMINI_API_KEY`）。key 以 `AIza` 开头（或设置 `GEMINI_API_KEY`）时自动使用 **Gemini 原生 API**（默认模型 `gemini-3.1-flash-lite`）；否则走 OpenAI 兼容格式，默认阿里云 DashScope（`qwen-vl-max`）
-- **绝不打印或提交 API Key**
-- 若 API 调用失败：向用户报告错误，并提示检查 Key、模型名或 Base URL（参考同目录 `.env.example`）
+Also accept the legacy variables `GEMINI_API_KEY`, `DASHSCOPE_API_KEY`, and `DASHSCOPE_BASE_URL`.
 
-## 配置指引（当用户尚未配置时）
+A Key beginning with `AIza` uses the Gemini native API and defaults to `gemini-3.1-flash-lite`. Other Keys use the OpenAI-compatible endpoint and default to DashScope with `qwen-vl-max`.
 
-告诉用户：
+If no Key is configured, instruct the user to copy `.env.example` to `.env` and set `VISION_API_KEY`. Never print, echo, log, or commit a Key.
 
-1. 将本 skill 目录下的 `.env.example` 复制为 `.env`
-2. 填入 `VISION_API_KEY`（必填）。Gemini key（`AIza` 开头）在 https://aistudio.google.com/apikey 申请；阿里云百炼在 https://bailian.console.aliyun.com/ 申请（新用户有免费额度）
-3. 模型与端点会自动按 key 匹配；如需其他服务，改 `VISION_BASE_URL` 和 `VISION_MODEL` 指向任意 OpenAI 兼容的视觉 API
+## Return the result
+
+Use the helper output as image context, then answer the user's actual question. Match the user's language. Do not merely repeat a generic image description when the user asked for OCR, debugging, UI review, or another specific outcome.
+
+If the API call fails, report the concise error and ask the user to check the Key, model, or endpoint. Do not expose request headers or secrets.
