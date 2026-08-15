@@ -2,7 +2,7 @@
 
 Give text-only AI agents eyes. Paste a screenshot, provide a local image, or share an image URL; the skill sends it to Gemini or an OpenAI-compatible vision API and returns useful text.
 
-让纯文本 AI Agent 一键看图：支持剪贴板、本地图片和图片 URL，零 npm 依赖，并自动优化大图。
+让纯文本 AI Agent 一键看图：支持剪贴板、本地图片和图片 URL，零 npm 依赖，原图无损传输。
 
 [中文](#中文) · [English](#english)
 
@@ -14,7 +14,7 @@ Give text-only AI agents eyes. Paste a screenshot, provide a local image, or sha
 
 - **直接粘贴截图**：不必先保存文件或寻找路径
 - **零 npm 依赖**：只需要 Node.js；macOS 和 Windows 使用系统自带工具读取剪贴板
-- **自动优化大图**：默认将最长边缩至 2048px，减少 base64 体积和等待时间
+- **准确度优先**：不在本地缩放、压缩或转换图片格式，保留小字和画面细节
 - **多种视觉模型**：支持 Gemini 原生 API、阿里云百炼及其他 OpenAI 兼容服务
 - **保护本地配置**：API Key 保存在被 Git 忽略的 `.env`；临时图片使用后自动清理
 
@@ -52,24 +52,11 @@ node vision.js --url "https://example.com/image.jpg" "识别图片中的文字"
 node vision.js --clipboard "这个界面有什么问题？"
 ```
 
-### 大图优化
+### 原图传输
 
-默认在上传前把图片最长边限制为 2048px。macOS 使用系统 `sips`，Windows 使用系统 PowerShell/.NET；Linux 检测到 ImageMagick 时启用。优化结果不比原图小时会自动保留原图。
+脚本不会在本地缩放、压缩、重新编码或转换图片格式。本地文件和剪贴板图片会以原始字节进行 Base64 编码；Base64 编码本身不会降低画质。图片 URL 在 OpenAI 兼容服务中直接传给服务端，Gemini 则下载原文件后以内联图片发送。
 
-```bash
-# 更快：最长边 1600px，JPEG 质量 76
-node vision.js --max-side 1600 --quality 76 --clipboard "分析截图"
-
-# 需要保留原图时关闭优化
-node vision.js --no-optimize "/path/to/image.png" "读取细小文字"
-```
-
-也可以在 `.env` 中设置：
-
-```ini
-VISION_MAX_SIDE=2048
-VISION_JPEG_QUALITY=82
-```
+Base64 内联图片统一设置了 18 MB 的安全上限。超过时脚本会报错并建议改用图片 URL 或服务商支持的文件上传方式，不会擅自压缩原图。
 
 ### 平台支持
 
@@ -77,13 +64,13 @@ VISION_JPEG_QUALITY=82
 | --- | --- | --- | --- |
 | 本地图片 / URL | ✅ | ✅ | ✅ |
 | 剪贴板图片 | ✅ | ✅ | 暂不支持 |
-| 零额外依赖优化 | ✅ | ✅ | 需系统安装 ImageMagick |
+| 原图无损传输 | ✅ | ✅ | ✅ |
 
 ### 安全与隐私
 
 - 图片只会发送给你在 `.env` 中配置的视觉模型服务；项目不包含遥测
 - `.env` 已加入 `.gitignore`，请勿在 Issue、日志或提交中粘贴 Key
-- 剪贴板和优化产生的临时图片权限受限，并会在成功或失败后清理
+- 剪贴板产生的临时图片权限受限，并会在成功或失败后清理
 - Gemini 本地下载远程图片时，仅允许 HTTP/HTTPS，并限制为最多 5 次重定向和 25 MB
 
 ## English
@@ -106,7 +93,7 @@ node vision.js --url "https://example.com/image.jpg" "Extract the text"
 node vision.js --clipboard "Review this interface"
 ```
 
-Large images are automatically resized to a maximum side of 2048px. Override this with `--max-side`, `--quality`, `--no-optimize`, `VISION_MAX_SIDE`, or `VISION_JPEG_QUALITY`.
+Images are sent without local resizing, recompression, format conversion, or quality loss. Local and clipboard images are Base64-encoded from their original bytes. Images above the inline upload limit fail explicitly instead of being modified.
 
 ### Development
 
